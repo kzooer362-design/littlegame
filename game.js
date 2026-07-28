@@ -8,6 +8,10 @@ class Game {
         this.isPaused = false;
         this.gameLoop = null;
         
+        // 用户系统
+        this.currentUser = null;
+        this.initUserSystem();
+        
         this.player = {
             x: 0,
             y: 0,
@@ -46,8 +50,8 @@ class Game {
         audioManager.loadExternalSounds();
         
         // 隐藏移动端虚拟按钮
-        const mobileControls = document.querySelector('.mobile-controls');
-        if (mobileControls) mobileControls.style.display = 'none';
+        const mobileControls = document.getElementById('mobileControls');
+        if (mobileControls) mobileControls.classList.add('hidden');
         
         window.addEventListener('resize', () => this.resizeCanvas());
     }
@@ -101,6 +105,7 @@ class Game {
         document.getElementById('galleryBackBtn').addEventListener('click', () => { audioManager.playClick(); this.showMenu(); });
         document.getElementById('achievementsBackBtn').addEventListener('click', () => { audioManager.playClick(); this.showMenu(); });
         document.getElementById('resetBtn').addEventListener('click', () => { audioManager.playClick(); this.resetGame(); });
+        document.getElementById('switchUserBtn').addEventListener('click', () => { audioManager.playClick(); this.logoutUser(); });
 
         document.getElementById('soundBtn').addEventListener('click', () => {
             audioManager.setEnabled(!audioManager.enabled);
@@ -169,6 +174,103 @@ class Game {
         this.initMobileControls();
     }
 
+    // 用户系统初始化
+    initUserSystem() {
+        const enterBtn = document.getElementById('enterGameBtn');
+        const nameInput = document.getElementById('playerName');
+        const errorMsg = document.getElementById('nameError');
+        
+        // 检查是否已有用户登录
+        const savedUser = localStorage.getItem('eater2_current_user');
+        if (savedUser) {
+            this.currentUser = savedUser;
+            this.hideLoginScreen();
+            this.showMenu();
+            return;
+        }
+        
+        // 登录按钮点击事件
+        enterBtn.addEventListener('click', () => this.validateAndLogin());
+        
+        // 回车键提交
+        nameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.validateAndLogin();
+            }
+        });
+        
+        // 输入时清除错误
+        nameInput.addEventListener('input', () => {
+            errorMsg.textContent = '';
+            nameInput.classList.remove('invalid');
+        });
+    }
+    
+    // 验证并登录
+    validateAndLogin() {
+        const nameInput = document.getElementById('playerName');
+        const errorMsg = document.getElementById('nameError');
+        const name = nameInput.value.trim();
+        
+        // 验证规则
+        if (!name) {
+            errorMsg.textContent = '请输入昵称';
+            nameInput.classList.add('invalid');
+            return;
+        }
+        
+        if (name.length > 6) {
+            errorMsg.textContent = '昵称最多6个字';
+            nameInput.classList.add('invalid');
+            return;
+        }
+        
+        // 检查是否支持汉字和英文字母数字
+        const validPattern = /^[\u4e00-\u9fa5a-zA-Z0-9]+$/;
+        if (!validPattern.test(name)) {
+            errorMsg.textContent = '只能输入汉字、字母或数字';
+            nameInput.classList.add('invalid');
+            return;
+        }
+        
+        // 检查重名
+        const users = this.getRegisteredUsers();
+        if (users.includes(name)) {
+            errorMsg.textContent = '昵称已存在，请更换';
+            nameInput.classList.add('invalid');
+            return;
+        }
+        
+        // 注册并登录
+        users.push(name);
+        localStorage.setItem('eater2_users', JSON.stringify(users));
+        localStorage.setItem('eater2_current_user', name);
+        
+        this.currentUser = name;
+        this.hideLoginScreen();
+        this.showMenu();
+    }
+    
+    // 获取已注册用户列表
+    getRegisteredUsers() {
+        const saved = localStorage.getItem('eater2_users');
+        return saved ? JSON.parse(saved) : [];
+    }
+    
+    // 隐藏登录界面
+    hideLoginScreen() {
+        document.getElementById('loginScreen').classList.add('hidden');
+    }
+    
+    // 显示登录界面
+    showLoginScreen() {
+        document.getElementById('loginScreen').classList.remove('hidden');
+        document.getElementById('playerName').value = '';
+        document.getElementById('nameError').textContent = '';
+        localStorage.removeItem('eater2_current_user');
+        this.currentUser = null;
+    }
+
     initMobileControls() {
         const btnLeft = document.getElementById('btnLeft');
         const btnRight = document.getElementById('btnRight');
@@ -228,9 +330,11 @@ class Game {
 
     resizeCanvas() {
         const container = document.querySelector('.game-area');
+        const gameUI = document.querySelector('.game-ui');
+        const gameUIHeight = gameUI ? gameUI.offsetHeight : 60;
         const maxWidth = container.clientWidth - 20;
-        // game-ui 约 60px，mobile-controls 约 100px
-        const maxHeight = container.clientHeight - 170;
+        // game-area 有 padding-bottom: 110px 给固定在底部的按钮
+        const maxHeight = container.clientHeight - gameUIHeight - 20;
         
         // 计算合适的画布尺寸，保持4:3比例
         let width = maxWidth;
@@ -263,8 +367,15 @@ class Game {
     }
 
     showMenu() {
+        // 检查是否已登录
+        if (!this.currentUser) {
+            this.showLoginScreen();
+            return;
+        }
         this.hideAll();
         document.getElementById('menu').classList.remove('hidden');
+        document.getElementById('currentUserName').textContent = this.currentUser;
+        this.updateMenuStats();
         // BGM需要用户交互后才能播放，不在此处直接调用
     }
 
@@ -274,6 +385,13 @@ class Game {
             saveStats(this.stats);
             this.updateMenuStats();
             alert('游戏已重置！');
+        }
+    }
+    
+    // 退出登录
+    logoutUser() {
+        if (confirm('确定要切换账号吗？')) {
+            this.showLoginScreen();
         }
     }
 
@@ -359,6 +477,7 @@ class Game {
         const gameEl = document.getElementById('game');
         gameEl.classList.add('hidden');
         gameEl.classList.remove('playing');
+        document.body.classList.remove('game-playing');
         document.getElementById('menu').classList.add('hidden');
         document.getElementById('levelSelect').classList.add('hidden');
         document.getElementById('pauseMenu').classList.add('hidden');
@@ -366,8 +485,8 @@ class Game {
         document.getElementById('gallery').classList.add('hidden');
         document.getElementById('achievements').classList.add('hidden');
         // 隐藏移动端虚拟按钮
-        const mobileControls = document.querySelector('.mobile-controls');
-        if (mobileControls) mobileControls.style.display = 'none';
+        const mobileControls = document.getElementById('mobileControls');
+        if (mobileControls) mobileControls.classList.add('hidden');
     }
 
     startLevel(levelId) {
@@ -378,10 +497,11 @@ class Game {
         const gameEl = document.getElementById('game');
         gameEl.classList.remove('hidden');
         gameEl.classList.add('playing');
+        document.body.classList.add('game-playing');
         
         // 显示移动端虚拟按钮
-        const mobileControls = document.querySelector('.mobile-controls');
-        if (mobileControls) mobileControls.style.display = 'flex';
+        const mobileControls = document.getElementById('mobileControls');
+        if (mobileControls) mobileControls.classList.remove('hidden');
 
         this.bites = 0;
         this.timeLeft = level.timeLimit;
@@ -830,4 +950,4 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 }
 
 const game = new Game();
-game.showMenu();
+// 用户系统会自动处理登录流程

@@ -10,9 +10,26 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="menu" class="menu">
+    <!-- 登录界面 -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-container">
+            <h1>🍔 小吃货2 🍟</h1>
+            <h2>吃货大冒险</h2>
+            <div class="login-form">
+                <label for="playerName">请输入昵称：</label>
+                <input type="text" id="playerName" maxlength="6" placeholder="最多6个字" autocomplete="off">
+                <div class="name-tips">
+                    <span id="nameError" class="error-msg"></span>
+                </div>
+                <button id="enterGameBtn" class="btn">进入游戏</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="menu" class="menu hidden">
         <h1>🍔 小吃货2 🍟</h1>
         <h2>吃货大冒险</h2>
+        <div class="user-info">欢迎 <span id="currentUserName">玩家</span></div>
         <div class="menu-stats">
             <p>总积分: <span id="totalScore">0</span></p>
             <p>通关关卡: <span id="completedLevels">0</span>/10</p>
@@ -22,6 +39,7 @@
         <button id="galleryBtn" class="btn">吃货图鉴</button>
         <button id="achievementsBtn" class="btn">成就列表</button>
         <button id="resetBtn" class="btn reset-btn">重置游戏</button>
+        <button id="switchUserBtn" class="btn">切换账号</button>
     </div>
 
     <div id="levelSelect" class="level-select hidden">
@@ -49,20 +67,20 @@
                     <span id="timerText">15s</span>
                 </div>
             </div>
-            
-            <!-- 移动端虚拟控制按钮 -->
-            <div class="mobile-controls">
-                <div class="control-left">
-                    <button id="btnLeft" class="ctrl-btn img-btn" ontouchstart="event.preventDefault()">
-                        <img src="assets/ui/left.png" alt="左移" class="btn-img">
-                    </button>
-                    <button id="btnRight" class="ctrl-btn img-btn" ontouchstart="event.preventDefault()">
-                        <img src="assets/ui/right.png" alt="右移" class="btn-img">
-                    </button>
-                </div>
-                <div class="control-right">
-                    <button id="btnEat" class="ctrl-btn eat-btn" ontouchstart="event.preventDefault()">🍴</button>
-                </div>
+        </div>
+        
+        <!-- 移动端虚拟控制按钮 - 固定在底部 -->
+        <div class="mobile-controls hidden" id="mobileControls">
+            <div class="control-left">
+                <button id="btnLeft" class="ctrl-btn img-btn" ontouchstart="event.preventDefault()">
+                    <img src="assets/ui/left.png" alt="左移" class="btn-img">
+                </button>
+                <button id="btnRight" class="ctrl-btn img-btn" ontouchstart="event.preventDefault()">
+                    <img src="assets/ui/right.png" alt="右移" class="btn-img">
+                </button>
+            </div>
+            <div class="control-right">
+                <button id="btnEat" class="ctrl-btn eat-btn" ontouchstart="event.preventDefault()">🍴</button>
             </div>
         </div>
     </div>
