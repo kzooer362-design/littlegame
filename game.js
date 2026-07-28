@@ -229,7 +229,8 @@ class Game {
     resizeCanvas() {
         const container = document.querySelector('.game-area');
         const maxWidth = container.clientWidth - 20;
-        const maxHeight = container.clientHeight - 80;
+        // game-ui 约 60px，mobile-controls 约 100px
+        const maxHeight = container.clientHeight - 170;
         
         // 计算合适的画布尺寸，保持4:3比例
         let width = maxWidth;
@@ -254,10 +255,9 @@ class Game {
         this.player.height = Math.floor(168 * scale);
         this.player.moveSpeed = Math.max(4, Math.floor(8 * scale));
         
-        // 确保人物在画布内，底部留出空间给时间条
-        const bottomMargin = this.player.height * 0.15; // 底部留15%空间
+        // 确保人物在画布内，紧贴下边缘
         this.player.x = Math.max(0, Math.min(this.canvas.width - this.player.width, this.canvas.width / 2 - this.player.width / 2));
-        this.player.y = Math.max(0, Math.min(this.canvas.height - this.player.height - bottomMargin, this.canvas.height - this.player.height - bottomMargin));
+        this.player.y = Math.max(0, this.canvas.height - this.player.height);
         this.player.mouth.x = this.player.x + this.player.width / 2;
         this.player.mouth.y = this.player.y + this.player.height * 0.36;
     }
@@ -356,9 +356,11 @@ class Game {
     }
 
     hideAll() {
+        const gameEl = document.getElementById('game');
+        gameEl.classList.add('hidden');
+        gameEl.classList.remove('playing');
         document.getElementById('menu').classList.add('hidden');
         document.getElementById('levelSelect').classList.add('hidden');
-        document.getElementById('game').classList.add('hidden');
         document.getElementById('pauseMenu').classList.add('hidden');
         document.getElementById('levelResult').classList.add('hidden');
         document.getElementById('gallery').classList.add('hidden');
@@ -373,7 +375,9 @@ class Game {
         const level = LEVELS[levelId - 1];
 
         this.hideAll();
-        document.getElementById('game').classList.remove('hidden');
+        const gameEl = document.getElementById('game');
+        gameEl.classList.remove('hidden');
+        gameEl.classList.add('playing');
         
         // 显示移动端虚拟按钮
         const mobileControls = document.querySelector('.mobile-controls');
