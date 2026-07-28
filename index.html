@@ -2,7 +2,10 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#ff6b6b">
     <title>小吃货2 - 吃货大冒险</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -46,10 +49,21 @@
                     <span id="timerText">15s</span>
                 </div>
             </div>
-            <div class="game-hints">
-            <div class="hint-item">⬅️➡️ 左右键移动</div>
-            <div class="hint-item">⬆️ 空格键吃东西</div>
-        </div>
+            
+            <!-- 移动端虚拟控制按钮 -->
+            <div class="mobile-controls">
+                <div class="control-left">
+                    <button id="btnLeft" class="ctrl-btn img-btn" ontouchstart="event.preventDefault()">
+                        <img src="assets/ui/left.png" alt="左移" class="btn-img">
+                    </button>
+                    <button id="btnRight" class="ctrl-btn img-btn" ontouchstart="event.preventDefault()">
+                        <img src="assets/ui/right.png" alt="右移" class="btn-img">
+                    </button>
+                </div>
+                <div class="control-right">
+                    <button id="btnEat" class="ctrl-btn eat-btn" ontouchstart="event.preventDefault()">🍴</button>
+                </div>
+            </div>
         </div>
     </div>
 

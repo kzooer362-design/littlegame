@@ -45,6 +45,10 @@ class Game {
         audioManager.init();
         audioManager.loadExternalSounds();
         
+        // 隐藏移动端虚拟按钮
+        const mobileControls = document.querySelector('.mobile-controls');
+        if (mobileControls) mobileControls.style.display = 'none';
+        
         window.addEventListener('resize', () => this.resizeCanvas());
     }
     
@@ -160,6 +164,60 @@ class Game {
                 this.keys[e.code] = false;
             }
         });
+
+        // 移动端虚拟按钮事件
+        this.initMobileControls();
+    }
+
+    initMobileControls() {
+        const btnLeft = document.getElementById('btnLeft');
+        const btnRight = document.getElementById('btnRight');
+        const btnEat = document.getElementById('btnEat');
+
+        // 左按钮 - 按下时持续移动
+        const leftStart = (e) => {
+            e.preventDefault();
+            this.keys['ArrowLeft'] = true;
+        };
+        const leftEnd = (e) => {
+            e.preventDefault();
+            this.keys['ArrowLeft'] = false;
+        };
+
+        btnLeft.addEventListener('touchstart', leftStart, { passive: false });
+        btnLeft.addEventListener('touchend', leftEnd);
+        btnLeft.addEventListener('touchcancel', leftEnd);
+        btnLeft.addEventListener('mousedown', leftStart);
+        btnLeft.addEventListener('mouseup', leftEnd);
+        btnLeft.addEventListener('mouseleave', leftEnd);
+
+        // 右按钮 - 按下时持续移动
+        const rightStart = (e) => {
+            e.preventDefault();
+            this.keys['ArrowRight'] = true;
+        };
+        const rightEnd = (e) => {
+            e.preventDefault();
+            this.keys['ArrowRight'] = false;
+        };
+
+        btnRight.addEventListener('touchstart', rightStart, { passive: false });
+        btnRight.addEventListener('touchend', rightEnd);
+        btnRight.addEventListener('touchcancel', rightEnd);
+        btnRight.addEventListener('mousedown', rightStart);
+        btnRight.addEventListener('mouseup', rightEnd);
+        btnRight.addEventListener('mouseleave', rightEnd);
+
+        // 吃按钮 - 点击一次吃一次
+        const eatAction = (e) => {
+            e.preventDefault();
+            if (this.isPlaying && !this.isPaused) {
+                this.tryEat();
+            }
+        };
+
+        btnEat.addEventListener('touchstart', eatAction, { passive: false });
+        btnEat.addEventListener('mousedown', eatAction);
     }
 
     updateMenuStats() {
@@ -170,16 +228,38 @@ class Game {
 
     resizeCanvas() {
         const container = document.querySelector('.game-area');
-        this.canvas.width = Math.min(600, container.clientWidth - 40);
-        this.canvas.height = 450;
+        const maxWidth = container.clientWidth - 20;
+        const maxHeight = container.clientHeight - 80;
+        
+        // 计算合适的画布尺寸，保持4:3比例
+        let width = maxWidth;
+        let height = width * 3 / 4;
+        
+        // 如果高度超出，则按高度计算
+        if (height > maxHeight) {
+            height = maxHeight;
+            width = height * 4 / 3;
+        }
+        
+        // 限制最小尺寸
+        this.canvas.width = Math.max(280, Math.floor(width));
+        this.canvas.height = Math.max(210, Math.floor(height));
         this.updatePlayerPosition();
     }
 
     updatePlayerPosition() {
-        this.player.x = this.canvas.width / 2 - this.player.width / 2;
-        this.player.y = this.canvas.height - this.player.height - 30;
+        // 根据画布大小调整人物尺寸
+        const scale = Math.min(this.canvas.width / 600, this.canvas.height / 450);
+        this.player.width = Math.floor(120 * scale);
+        this.player.height = Math.floor(168 * scale);
+        this.player.moveSpeed = Math.max(4, Math.floor(8 * scale));
+        
+        // 确保人物在画布内，底部留出空间给时间条
+        const bottomMargin = this.player.height * 0.15; // 底部留15%空间
+        this.player.x = Math.max(0, Math.min(this.canvas.width - this.player.width, this.canvas.width / 2 - this.player.width / 2));
+        this.player.y = Math.max(0, Math.min(this.canvas.height - this.player.height - bottomMargin, this.canvas.height - this.player.height - bottomMargin));
         this.player.mouth.x = this.player.x + this.player.width / 2;
-        this.player.mouth.y = this.player.y + 60;
+        this.player.mouth.y = this.player.y + this.player.height * 0.36;
     }
 
     showMenu() {
@@ -283,36 +363,46 @@ class Game {
         document.getElementById('levelResult').classList.add('hidden');
         document.getElementById('gallery').classList.add('hidden');
         document.getElementById('achievements').classList.add('hidden');
+        // 隐藏移动端虚拟按钮
+        const mobileControls = document.querySelector('.mobile-controls');
+        if (mobileControls) mobileControls.style.display = 'none';
     }
 
     startLevel(levelId) {
         this.currentLevel = levelId;
         const level = LEVELS[levelId - 1];
-        
+
         this.hideAll();
         document.getElementById('game').classList.remove('hidden');
         
+        // 显示移动端虚拟按钮
+        const mobileControls = document.querySelector('.mobile-controls');
+        if (mobileControls) mobileControls.style.display = 'flex';
+
         this.bites = 0;
         this.timeLeft = level.timeLimit;
         this.startTime = Date.now();
         this.isPlaying = true;
         this.isPaused = false;
         this.foods = [];
-        
+
         document.getElementById('currentLevel').textContent = levelId;
         document.getElementById('progressText').textContent = `0/${level.bites}`;
         document.getElementById('timerText').textContent = `${level.timeLimit}s`;
-        
+
         this.canvas.style.background = level.bgGradient;
         this.updateProgress();
-        
+
         this.spawnFoods();
-        
+
         if (this.gameLoop) clearInterval(this.gameLoop);
         this.gameLoop = setInterval(() => this.update(), 1000 / 60);
-        
+
         audioManager.playBGM();
-        
+
+        // 调整画布大小
+        this.resizeCanvas();
+
         // 确保游戏区域获得焦点
         setTimeout(() => {
             this.canvas.focus();
@@ -389,6 +479,7 @@ class Game {
         }
         // 更新玩家身体部位位置
         this.player.mouth.x = this.player.x + this.player.width / 2;
+        this.player.mouth.y = this.player.y + this.player.height * 0.36;
         
         // 检测是否有食物接近嘴巴，如果有则张嘴
         const hasFoodNearby = this.foods.some(food => {
@@ -510,52 +601,60 @@ class Game {
             return;
         }
         
-        // 默认绘制（使用代码绘制）
+        // 默认绘制（使用代码绘制）- 所有尺寸按比例计算
+        const w = width, h = height;
+        const cx = x + w / 2;
+        
+        // 身体
         this.ctx.fillStyle = '#FF6B6B';
         this.ctx.beginPath();
-        this.ctx.roundRect(x + 15, y + 70, width - 30, height - 70, 10);
+        this.ctx.roundRect(x + w * 0.12, y + h * 0.42, w * 0.76, h * 0.58, w * 0.08);
         this.ctx.fill();
-        
+
+        // 脸
         this.ctx.fillStyle = '#FFE0BD';
         this.ctx.beginPath();
-        this.ctx.arc(x + width / 2, y + 45, 40, 0, Math.PI * 2);
+        this.ctx.arc(cx, y + h * 0.27, w * 0.33, 0, Math.PI * 2);
         this.ctx.fill();
-        
+
+        // 眼睛
         this.ctx.fillStyle = '#333';
         if (emotion === 'happy') {
             this.ctx.beginPath();
-            this.ctx.arc(x + width / 2 - 15, y + 35, 6, 0, Math.PI);
+            this.ctx.arc(cx - w * 0.12, y + h * 0.21, w * 0.05, 0, Math.PI);
             this.ctx.fill();
             this.ctx.beginPath();
-            this.ctx.arc(x + width / 2 + 15, y + 35, 6, 0, Math.PI);
+            this.ctx.arc(cx + w * 0.12, y + h * 0.21, w * 0.05, 0, Math.PI);
             this.ctx.fill();
         } else {
             this.ctx.beginPath();
-            this.ctx.arc(x + width / 2 - 15, y + 35, 6, 0, Math.PI * 2);
+            this.ctx.arc(cx - w * 0.12, y + h * 0.21, w * 0.05, 0, Math.PI * 2);
             this.ctx.fill();
             this.ctx.beginPath();
-            this.ctx.arc(x + width / 2 + 15, y + 35, 6, 0, Math.PI * 2);
+            this.ctx.arc(cx + w * 0.12, y + h * 0.21, w * 0.05, 0, Math.PI * 2);
             this.ctx.fill();
         }
-        
+
+        // 嘴巴
         this.ctx.fillStyle = '#FF6B6B';
         if (emotion === 'happy') {
             this.ctx.beginPath();
-            this.ctx.arc(x + width / 2, y + 60, 18, 0, Math.PI);
+            this.ctx.arc(cx, y + h * 0.36, w * 0.15, 0, Math.PI);
             this.ctx.fill();
         } else if (emotion === 'open') {
             this.ctx.beginPath();
-            this.ctx.arc(x + width / 2, y + 60, 15, 0, Math.PI);
+            this.ctx.arc(cx, y + h * 0.36, w * 0.13, 0, Math.PI);
             this.ctx.fill();
         } else {
             this.ctx.beginPath();
-            this.ctx.arc(x + width / 2, y + 60, 8, 0, Math.PI);
+            this.ctx.arc(cx, y + h * 0.36, w * 0.07, 0, Math.PI);
             this.ctx.fill();
         }
-        
+
+        // 头发
         this.ctx.fillStyle = '#8B4513';
         this.ctx.beginPath();
-        this.ctx.arc(x + width / 2, y + 25, 35, Math.PI, 0);
+        this.ctx.arc(cx, y + h * 0.15, w * 0.29, Math.PI, 0);
         this.ctx.fill();
     }
 
